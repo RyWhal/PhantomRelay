@@ -178,9 +178,34 @@ async function browserError(res: Response, what: string): Promise<HttpError> {
   } catch {
     detail = "";
   }
-  if (res.status === 429) return new HttpError(429, "Browser Run is busy or over its limit. Try again shortly.");
+  if (res.status === 429) return new HttpError(429, "Browser Run is rate limited right now (the free plan allows one capture every 10 seconds and 10 minutes a day). Try again shortly.");
   const status = res.status >= 500 ? 502 : 422;
   return new HttpError(status, `Could not ${what} (${res.status})${detail ? `: ${detail.slice(0, 500)}` : ""}`);
+}
+
+/** Wait before the one retry after a 429 (the free plan allows one request every 10 seconds). */
+const RETRY_AFTER_429_MS = 10_500;
+
+/**
+ * Run a quick action, retrying once after a short wait if Browser Run answers
+ * 429, so back-to-back calls (desktop then mobile) don't fail.
+ */
+async function runAction(env: Bindings, action: "screenshot" | "snapshot" | "pdf", options: Record<string, unknown>): Promise<Response> {
+  const call = () => {
+    switch (action) {
+      case "screenshot":
+        return env.BROWSER.quickAction("screenshot", options as unknown as BrowserRunScreenshotOptions);
+      case "snapshot":
+        return env.BROWSER.quickAction("snapshot", options as unknown as BrowserRunSnapshotOptions);
+      case "pdf":
+        return env.BROWSER.quickAction("pdf", options as unknown as BrowserRunPDFOptions);
+    }
+  };
+  const first = await call();
+  if (first.status !== 429) return first;
+  await first.body?.cancel();
+  await new Promise((resolve) => setTimeout(resolve, RETRY_AFTER_429_MS));
+  return call();
 }
 
 function msUsed(res: Response): number | null {
@@ -284,7 +309,7 @@ export async function screenshot(env: Bindings, origin: string, req: CaptureRequ
   };
   if (req.element) options.selector = req.element;
 
-  const res = await env.BROWSER.quickAction("screenshot", options as unknown as BrowserRunScreenshotOptions);
+  const res = await runAction(env, "screenshot", options);
   if (!res.ok) throw await browserError(res, `screenshot ${url.host}`);
   const browserMs = msUsed(res);
   let data: Uint8Array = new Uint8Array(await res.arrayBuffer());
@@ -390,7 +415,7 @@ export async function snapshot(env: Bindings, origin: string, req: SnapshotReque
   options.formats = req.includeScreenshot ? ["screenshot", "markdown", "accessibilityTree"] : ["markdown", "accessibilityTree"];
   if (req.includeScreenshot) options.screenshotOptions = { type: "png" };
 
-  const res = await env.BROWSER.quickAction("snapshot", options as unknown as BrowserRunSnapshotOptions);
+  const res = await runAction(env, "snapshot", options);
   if (!res.ok) throw await browserError(res, `snapshot ${url.host}`);
   const browserMs = msUsed(res);
   const body = (await res.json()) as BrowserRunSnapshotSuccessResponse | BrowserRunErrorResponse;
@@ -457,7 +482,7 @@ export async function pdf(env: Bindings, origin: string, req: PdfRequest): Promi
   await allowBrowser(env);
   const { options } = await baseOptions(env, url, req);
   options.pdfOptions = { format: req.paper, landscape: req.landscape, printBackground: true };
-  const res = await env.BROWSER.quickAction("pdf", options as unknown as BrowserRunPDFOptions);
+  const res = await runAction(env, "pdf", options);
   if (!res.ok) throw await browserError(res, `render ${url.host} as PDF`);
   const data = new Uint8Array(await res.arrayBuffer());
   const stored = await store(env, origin, data, { url: url.toString(), kind: "pdf" });

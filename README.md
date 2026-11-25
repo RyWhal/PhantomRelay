@@ -47,7 +47,7 @@ Like Plonk, deploys happen in Cloudflare on every push to `main`; no deploy secr
 3. The `peek-shots` R2 bucket and the `peek-CACHE` KV namespace (id pinned in `wrangler.jsonc`) already exist. The deploy creates the `peek.nradix.com` custom domain and the cron.
 4. Open the `peek` Worker → **Settings → Variables and Secrets → Add**, type **Secret**, name `PEEK_TOKEN`, value from `openssl rand -hex 32`. Optionally add `ACCESS_CLIENT_ID` and `ACCESS_CLIENT_SECRET`.
 
-Browser Run needs the Workers Paid plan for real use: it includes 10 browser hours a month, then $0.09/hour. A screenshot takes a few seconds, so thousands a month fit in the included time. The free plan allows 10 minutes a day.
+Browser Run needs the Workers Paid plan for real use: it includes 10 browser hours a month, then $0.09/hour. A screenshot takes a few seconds, so thousands a month fit in the included time. The free plan allows 10 minutes a day and one request every 10 seconds; when Browser Run answers 429, Peek waits 10 seconds and retries once.
 
 Optional, as a backstop to the cron: an R2 lifecycle rule, `npx wrangler r2 bucket lifecycle add peek-shots expire-captures --expire-days 4`.
 
@@ -62,6 +62,8 @@ Optional, as a backstop to the cron: an R2 lifecycle rule, `npx wrangler r2 buck
 Treat the connector URL like a password. To rotate, change the secret and update the connector.
 
 There's also a plain HTTP endpoint for scripts: `GET /api/screenshot?url=...&viewport=mobile&full_page=1` with the bearer token returns the image (link in the `X-Peek-Link` header).
+
+The nradix.com zone's Browser Integrity Check answers some default script user agents (e.g. `Python-urllib`) with a 403, error 1010, before the request reaches Peek. Send a normal `User-Agent` header from scripts.
 
 ## Local development
 
