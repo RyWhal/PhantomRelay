@@ -1,0 +1,26 @@
+{
+  "name": "peek",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Screenshots of any public web page for Claude, as a remote MCP server on Cloudflare Workers + Browser Run.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "typecheck": "tsc -p .",
+    "build": "npm run typecheck",
+    "deploy": "wrangler deploy",
+    "test": "node --test test/unit.test.ts",
+    "test:e2e": "node --test test/e2e.test.mjs"
+  },
+  "dependencies": {
+    "hono": "^4.6.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261123.1",
+    "typescript": "^5.6.3",
+    "wrangler": "^4.45.0"
+  },
+  "engines": {
+    "node": ">=22.18"
+  }
+}

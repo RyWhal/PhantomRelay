@@ -1,0 +1,53 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "peek",
+  "main": "src/index.ts",
+  // quickAction() on the browser binding needs 2026-03-24 or later.
+  "compatibility_date": "2026-11-20",
+
+  // Served only on the custom domain; no *.workers.dev URL.
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [{ "pattern": "peek.nradix.com", "custom_domain": true }],
+
+  // Cloudflare Browser Run. No API token needed with the binding.
+  "browser": { "binding": "BROWSER" },
+
+  // Captures (screenshots, PDFs). The cron deletes them after SHOT_TTL_HOURS.
+  // Created on first deploy if missing (Wrangler automatic provisioning).
+  "r2_buckets": [{ "binding": "SHOTS", "bucket_name": "peek-shots" }],
+
+  // Short-lived capture cache and Access cookies. Provisioned on first deploy.
+  "kv_namespaces": [{ "binding": "CACHE" }],
+
+  // Edge rate limits (per key, per Cloudflare location).
+  //   BROWSER_LIMITER: browser launches (cache hits are free), all callers share one key.
+  //   AUTH_LIMITER: failed token attempts per IP.
+  "ratelimits": [
+    { "name": "BROWSER_LIMITER", "namespace_id": "5101", "simple": { "limit": 20, "period": 60 } },
+    { "name": "AUTH_LIMITER", "namespace_id": "5102", "simple": { "limit": 10, "period": 60 } }
+  ],
+
+  // Delete old captures hourly.
+  "triggers": { "crons": ["17 * * * *"] },
+
+  "vars": {
+    "PUBLIC_URL": "https://peek.nradix.com",
+    "SHOT_TTL_HOURS": "72",
+    "CACHE_TTL_SECONDS": "300",
+    // Your domains: the only hosts Access service-token credentials are ever used for.
+    "OWNER_DOMAINS": "nradix.com"
+  },
+
+  // Secrets (Cloudflare dashboard, or `wrangler secret put`):
+  //   PEEK_TOKEN              required: unlocks /mcp and /api (at least 24 characters)
+  //   ACCESS_CLIENT_ID        optional: Cloudflare Access service token, for your
+  //   ACCESS_CLIENT_SECRET    optional:   own Access-protected previews
+
+  "observability": {
+    "enabled": true,
+    // Invocation logs record full request URLs, which would include an MCP
+    // token passed in the path. Keep them off; console logs still work.
+    "logs": { "enabled": true, "invocation_logs": false }
+  }
+}

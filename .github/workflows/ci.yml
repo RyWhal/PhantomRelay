@@ -1,0 +1,28 @@
+name: CI
+
+# Checks only. Deploys are done by Cloudflare Workers Builds on push to main.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - name: End-to-end tests against a local Worker
+        run: |
+          printf 'PEEK_TOKEN=test-peek-token-0123456789abcdef\nPUBLIC_URL=http://localhost:8787\n' > .dev.vars
+          npx wrangler dev --port 8787 > wrangler.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:8787/healthz && break; sleep 1; done
+          npm run test:e2e
+      - if: failure()
+        run: cat wrangler.log || true
