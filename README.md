@@ -44,7 +44,7 @@ Like Plonk, deploys happen in Cloudflare on every push to `main`; no deploy secr
 
 1. **Workers & Pages → Create → Import a repository**, pick `RyWhal/PhantomRelay`.
 2. Project name **`peek`** (must match `name` in `wrangler.jsonc`). Build command: `npm run build`. Deploy command: `npm run deploy`. Root directory: `/`.
-3. The first deploy creates the `peek-shots` R2 bucket and the `CACHE` KV namespace (Wrangler automatic provisioning) and the `peek.nradix.com` custom domain (there must be no existing DNS record for it).
+3. The `peek-shots` R2 bucket and the `peek-CACHE` KV namespace (id pinned in `wrangler.jsonc`) already exist. The deploy creates the `peek.nradix.com` custom domain and the cron.
 4. Open the `peek` Worker → **Settings → Variables and Secrets → Add**, type **Secret**, name `PEEK_TOKEN`, value from `openssl rand -hex 32`. Optionally add `ACCESS_CLIENT_ID` and `ACCESS_CLIENT_SECRET`.
 
 Browser Run needs the Workers Paid plan for real use: it includes 10 browser hours a month, then $0.09/hour. A screenshot takes a few seconds, so thousands a month fit in the included time. The free plan allows 10 minutes a day.

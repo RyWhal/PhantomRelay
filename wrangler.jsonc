@@ -14,11 +14,10 @@
   "browser": { "binding": "BROWSER" },
 
   // Captures (screenshots, PDFs). The cron deletes them after SHOT_TTL_HOURS.
-  // Created on first deploy if missing (Wrangler automatic provisioning).
   "r2_buckets": [{ "binding": "SHOTS", "bucket_name": "peek-shots" }],
 
-  // Short-lived capture cache and Access cookies. Provisioned on first deploy.
-  "kv_namespaces": [{ "binding": "CACHE" }],
+  // Short-lived capture cache and Access cookies.
+  "kv_namespaces": [{ "binding": "CACHE", "id": "c573d56dd0044738801d5bc04c5a9f33" }],
 
   // Edge rate limits (per key, per Cloudflare location).
   //   BROWSER_LIMITER: browser launches (cache hits are free), all callers share one key.
