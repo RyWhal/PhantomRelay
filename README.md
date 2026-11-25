@@ -65,6 +65,10 @@ There's also a plain HTTP endpoint for scripts: `GET /api/screenshot?url=...&vie
 
 The nradix.com zone's Browser Integrity Check answers some default script user agents (e.g. `Python-urllib`) with a 403, error 1010, before the request reaches Peek. Send a normal `User-Agent` header from scripts.
 
+## Claude skill
+
+`skill/peek-pages/SKILL.md` tells Claude when and how to use Peek (which tool, viewports, `fresh` after deploys, pacing, what Peek can't open). Package it with skill-creator's `package_skill` and save it in Claude to install.
+
 ## Local development
 
 ```
